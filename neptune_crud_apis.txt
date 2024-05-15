@@ -1,0 +1,205 @@
+curl -X POST https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader \
+-H 'Content-Type: application/json' \
+-d '{"source":"s3://pkm-neptune-demo/bulk_raw/edge", 
+"format":"opencypher", 
+"iamRoleArn":"arn:aws:iam::383973027857:role/s3_reader", 
+"region":"ap-northeast-1", 
+"failOnError":"FALSE", 
+"parallelism":"MEDIUM", 
+"userProvidedEdgeIds":"TRUE"}'
+
+curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader \
+-H 'Content-Type: application/json' \
+-d '{"source":"s3://pkm-neptune-demo/bulk_raw_real/vertices",
+"format":"opencypher", 
+"iamRoleArn":"arn:aws:iam::383973027857:role/s3_reader", 
+"region":"ap-northeast-1", 
+"failOnError":"FALSE", 
+"parallelism":"MEDIUM", 
+"userProvidedEdgeIds":"TRUE"}'
+
+curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/2e684d00-8ec1-4261-848f-8e66e4e1c7ca'
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (c:comment {commentId: '145300459547000836'}) RETURN c;"
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (m:member)<-[l:COMMENTED_BY]-(c:comment {content: 'test1'}) RETURN m;"
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (n)-[r]->(d) RETURN n, r, d;"
+
+#Query 1 with comment property:
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (c:comment {posterId:'143258847211945986'})RETURN c;"
+#Query 2 with edge property:
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (n)-[r:RECEIVED_FROM {posterId:'143258847211945986'}]->(c)RETURN c;"
+#Query 3 with relationship property:
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (n:member {memberId:'143258847211945986'})-[:POSTED]->(:post)-[:COMMENTED_FROM]->(c:comment)RETURN c;"
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher -d "query=MATCH (m:member)<-[l:COMMENTED_BY]-(c:comment {commentId:'145300459547000833'}) RETURN l;"
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher -d "query=MATCH (n) DETACH DELETE n;"
+
+
+
+curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher -d \
+"query=MATCH (po:post {postId:'145294092157321218'}),(p:member {memberId:'143258847211945986'}),(m:member {memberId:'143258847211945987'}) CREATE (c:comment {\`~id\`:'145300459547000837',commentId:'145300459547000837',posterId:p.memberId,content:'test4',createAt:datetime('2024-04-26T02:45:05Z'),updatedAt:datetime('2024-04-26T02:45:05Z')}) MERGE (c)-[:COMMENTED_BY]->(m) MERGE (po)-[:COMMENTED_FROM]->(c) MERGE (p)-[:RECEIVED_FROM {posterId:p.memberId}]->(c);"
+
+MATCH (m1:Member {memberId:'143258847211945986'}),(m2:Member {memberId:'143258847211945987'}),(p:Post {postId:'145294092157321218'}) 
+
+
+MATCH (m:Member {memberId: ''}), (c:Comment {commentId: ''})
+MERGE (m)-[:RECEIVED_FROM {posterId: ''}]->(c)
+
+
+
+
+
+[
+    {
+        "name": ":ID",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": "commentId:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "status:Int",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "content:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "account:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "posterID:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "memberID:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "postID:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "creatorAccount:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "serialNumber:Int",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "createdAt:DateTime",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "updatedAt:DateTime",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "avatar:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "isCreator:Bool",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "isVerified:Bool",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "nickname:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "showAccount:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "hashTags:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "posterAccount:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "price:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "purchasable:Bool",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "reviewStatus:Int",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "subscribeLevel:Int",
+        "type": "INTEGER",
+        "mode": "NULLABLE"
+    }
+]
+
+[
+    {
+        "name": ":ID",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "name": ":START_ID",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": ":END_ID",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": ":TYPE",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "posterId:String",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    }
+]
