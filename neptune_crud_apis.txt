@@ -10,7 +10,7 @@ curl -X POST https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptu
 
 curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader \
 -H 'Content-Type: application/json' \
--d '{"source":"s3://pkm-neptune-demo/bulk_raw_real/vertices",
+-d '{"source":"s3://pkm-neptune-demo/bulk_raw_real/edges",
 "format":"opencypher", 
 "iamRoleArn":"arn:aws:iam::383973027857:role/s3_reader", 
 "region":"ap-northeast-1", 
@@ -18,7 +18,10 @@ curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.
 "parallelism":"MEDIUM", 
 "userProvidedEdgeIds":"TRUE"}'
 
-curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/2e684d00-8ec1-4261-848f-8e66e4e1c7ca'
+e4f001bc-1e72-4e98-977a-679ac8fcacad
+49a09b1d-d932-40d9-9dde-57b639655740
+curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/49a09b1d-d932-40d9-9dde-57b639655740'
+curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/b84e4a64-e803-4d02-bb9a-7d0ff3195d3c?details=TRUE,errors=TRUE'
 
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
 -d "query=MATCH (c:comment {commentId: '145300459547000836'}) RETURN c;"
@@ -29,15 +32,24 @@ curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazo
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
 -d "query=MATCH (n)-[r]->(d) RETURN n, r, d;"
 
+curl https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
+-d "query=MATCH (n) RETURN COUNT(n);"
+
+#Delete all datas
+curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/system \
+-d 'action=initiateDatabaseReset'
+curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/system \
+-d 'action=performDatabaseReset&token=cec7c07a-145a-d32f-b212-606f95d85ffc'
+
 #Query 1 with comment property:
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
 -d "query=MATCH (c:comment {posterId:'143258847211945986'})RETURN c;"
 #Query 2 with edge property:
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
--d "query=MATCH (n)-[r:RECEIVED_FROM {posterId:'143258847211945986'}]->(c)RETURN c;"
+-d "query=MATCH (c:comment)<-[:RECEIVED_FROM {posterId:'147160578392064060'}]-() RETURN COUNT(c);"
 #Query 3 with relationship property:
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
--d "query=MATCH (n:member {memberId:'143258847211945986'})-[:POSTED]->(:post)-[:COMMENTED_FROM]->(c:comment)RETURN c;"
+-d "query=MATCH (n:member {memberID:'143258847211945986'})-[:POSTED]->(:post)-[:COMMENTED_FROM]->(c:comment)RETURN c;"
 
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher -d "query=MATCH (m:member)<-[l:COMMENTED_BY]-(c:comment {commentId:'145300459547000833'}) RETURN l;"
 
@@ -203,3 +215,8 @@ MERGE (m)-[:RECEIVED_FROM {posterId: ''}]->(c)
         "mode": "NULLABLE"
     }
 ]
+
+AKIAVSZUTOAI4GJCXFU4
+swRLiGktNisxMHf/4vEtfctJkAU/fUgAafEtPTkm
+
+
