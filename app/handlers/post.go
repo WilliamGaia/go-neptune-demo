@@ -63,4 +63,30 @@ func AddPost(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Context
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query comments "})
 		return
 	}
+	for result.Next(ctx) {
+		record := result.Record()
+		comment_node, found := record.Get("c")
+		if !found {
+			fmt.Println("Failed to get node from record")
+			continue
+		}
+		member_node, found := record.Get("m")
+		if !found {
+			fmt.Println("Failed to get node from record")
+			continue
+		}
+
+		c_value, _ := comment_node.(neo4j.Node)
+		m_value, _ := member_node.(neo4j.Node)
+		comment.CommentID = c_value.Props["commentId"].(string)
+		comment.Content = c_value.Props["content"].(string)
+		comment.MemberID = c_value.Props["memberID"].(string)
+		comment.Nickname = m_value.Props["nickname"].(string)
+		comment.PostID = c_value.Props["postID"].(string)
+		comment.CreatedAt = c_value.Props["createdAt"].(time.Time).Format(time.RFC3339)
+		comment.UpdatedAt = c_value.Props["updatedAt"].(time.Time).Format(time.RFC3339)
+	}
+
+	fmt.Printf("Comment retrieved: %+v\n", comment)
+	c.IndentedJSON(http.StatusCreated, comment)
 }

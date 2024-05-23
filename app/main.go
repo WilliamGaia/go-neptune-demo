@@ -5,7 +5,6 @@ import (
 	"app/utils"
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
@@ -17,8 +16,6 @@ const (
 )
 
 func init() {
-	os.Setenv("AWS_ACCESS_KEY_ID", "AKIAVSZUTOAI4GJCXFU4")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "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")
 }
 
 func main() {
