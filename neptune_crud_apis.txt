@@ -1,6 +1,18 @@
+curl -G https://pkm-osgp-index-test-instance-1.cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/status
+
 curl -X POST https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader \
 -H 'Content-Type: application/json' \
 -d '{"source":"s3://pkm-neptune-demo/bulk_raw/edge", 
+"format":"opencypher", 
+"iamRoleArn":"arn:aws:iam::383973027857:role/s3_reader", 
+"region":"ap-northeast-1", 
+"failOnError":"FALSE", 
+"parallelism":"MEDIUM", 
+"userProvidedEdgeIds":"TRUE"}'
+
+curl -X POST https://pkm-r5d-xlarge.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader \
+-H 'Content-Type: application/json' \
+-d '{"source":"s3://pkm-neptune-demo/bulk_raw_real/edges",
 "format":"opencypher", 
 "iamRoleArn":"arn:aws:iam::383973027857:role/s3_reader", 
 "region":"ap-northeast-1", 
@@ -18,9 +30,9 @@ curl -X POST https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.
 "parallelism":"MEDIUM", 
 "userProvidedEdgeIds":"TRUE"}'
 
-e4f001bc-1e72-4e98-977a-679ac8fcacad
-49a09b1d-d932-40d9-9dde-57b639655740
-curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/49a09b1d-d932-40d9-9dde-57b639655740'
+75364f21-7424-4777-ae02-0c9a712eaaef
+df789d70-b378-44cb-818a-22e2e68a4fbd
+curl -G 'https://pkm-r5d-xlarge.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/df789d70-b378-44cb-818a-22e2e68a4fbd'
 curl -G 'https://pkm-demo-instance-real.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/loader/b84e4a64-e803-4d02-bb9a-7d0ff3195d3c?details=TRUE,errors=TRUE'
 
 curl https://pkm-demo-instance.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182/openCypher \
@@ -67,8 +79,29 @@ MATCH (m:Member {memberId: ''}), (c:Comment {commentId: ''})
 MERGE (m)-[:RECEIVED_FROM {posterId: ''}]->(c)
 
 
+CREATE (c:Comment {
+    `~id`: "147325098075422780",
+    memberID: "147160578413625404",
+    postID: "147312379047182396",
+    commentId: "147325098075422780",
+    status: 1,
+    serialNumber: 329,
+    posterID: "147160578392064060",
+    updatedAt: "2024-05-09T08:23:21Z",
+    content: "329 : test，夜幕降临，星星点点在天空闪烁着微弱的光芒。微风吹，吹过，带来了一丝清凉，宁静的夜晚弥漫着宁静与祥和。树叶在微风中轻轻摇曳，月光洒在大地上，如银色的绸带般美丽动人。夜色中整個弥漫着淡淡的炊烟。",
+    posterAccount: "Account0",
+    createdAt: "2024-05-09T08:23:21Z"
+})
+RETURN c;
 
 
+
+
+WITH [147160578392064060, 147160578392129596, 147160578392195132, 147160578392260668, 147160578392326204] AS creatorIDs
+UNWIND creatorIDs AS creatorID
+MATCH (c:Comment)
+WHERE c.posterID = creatorID
+RETURN count(c);
 
 [
     {
@@ -215,8 +248,5 @@ MERGE (m)-[:RECEIVED_FROM {posterId: ''}]->(c)
         "mode": "NULLABLE"
     }
 ]
-
-AKIAVSZUTOAI4GJCXFU4
-swRLiGktNisxMHf/4vEtfctJkAU/fUgAafEtPTkm
 
 
