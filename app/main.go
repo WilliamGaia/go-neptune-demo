@@ -5,17 +5,15 @@ import (
 	"app/utils"
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j/auth"
 )
 
-const (
-	hostAndPort = "pkm-osgp-index-test.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182"
-)
-
 func main() {
+	hostAndPort := os.Getenv("HOSTPORT")
 	ctx := context.Background()
 
 	fetchAuthToken := utils.FetchAWSSignedToken
