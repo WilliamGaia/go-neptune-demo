@@ -15,9 +15,6 @@ const (
 	hostAndPort = "pkm-osgp-index-test.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182"
 )
 
-func init() {
-}
-
 func main() {
 	ctx := context.Background()
 

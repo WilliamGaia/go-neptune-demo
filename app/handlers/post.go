@@ -24,69 +24,57 @@ func AddPost(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Context
 	currentTimestamp := time.Now().UTC().Format(time.RFC3339)
 	r := mrand.New(mrand.NewSource(time.Now().UnixNano()))
 	uniqueID := fmt.Sprintf("%d%d", time.Now().UnixNano(), r.Intn(1000))
-	fmt.Println("The uniqueID of commentID is:", uniqueID)
+	fmt.Println("The uniqueID of postID is:", uniqueID)
 
 	params := map[string]interface{}{
-		"commentId":        uniqueID,
-		"memberID":         request.MemberID,
-		"postID":           request.PostID,
-		"status":           1,
-		"serialNumber":     329,
+		"posterID":         request.MemberID,
+		"postID":           uniqueID,
 		"currentTimestamp": currentTimestamp,
 		"content":          request.Content,
+		"hashTags":         "s2otaiwan,s20,大佳河濱公園,比基尼,bikini,taipei,taiwan,",
+		"price":            "{}",
+		"purchasable":      true,
+		"reviewStatus":     1,
+		"status":           1,
+		"subscribeLevel":   1,
 	}
 	query := `
-	MATCH (p:post {postID: $postID})
-	MATCH (m:member {memberID:$memberID})
-	MATCH (poster:member {memberID:p.posterID})
-	CREATE (c:comment {
-		` + "`~id`" + `: $commentId,
-		memberID: $memberID,
+	MATCH (m:member {memberID:$posterID})
+	CREATE (p:post {
+		` + "`~id`" + `: $postID,
 		postID: $postID,
-		commentId: $commentId,
 		status: $status,
-		serialNumber: $serialNumber,
-		posterID: p.posterID,
-		updatedAt: datetime($currentTimestamp),
+		reviewStatus: $reviewStatus,
+		subscribeLevel: $subscribeLevel,
+		posterID: $posterID,
+		posterAccount: m.account,
 		content: $content,
-		posterAccount: p.posterAccount,
+		hashTags: $hashTags,
+		price: $price,
+		purchasable: $purchasable,
+		updatedAt: datetime($currentTimestamp),
 		createdAt: datetime($currentTimestamp)
 	})
-	MERGE (c)-[:COMMENTED_BY]->(m)
-	MERGE (p)-[:COMMENTED_FROM]->(c)
-	MERGE (poster)-[:RECEIVED_FROM {posterID:p.posterID}]->(c)
-	RETURN c, m;`
+	MERGE (m)-[:POSTED]->(p)
+	RETURN p.postID AS postID;`
 
 	result, err := session.Run(ctx, query, params)
 	if err != nil {
 		fmt.Println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query comments "})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add post "})
 		return
 	}
+	postID := ""
 	for result.Next(ctx) {
 		record := result.Record()
-		comment_node, found := record.Get("c")
+		p_value, found := record.Get("postID")
 		if !found {
-			fmt.Println("Failed to get node from record")
+			fmt.Println("Failed to get postID from record")
 			continue
 		}
-		member_node, found := record.Get("m")
-		if !found {
-			fmt.Println("Failed to get node from record")
-			continue
-		}
-
-		c_value, _ := comment_node.(neo4j.Node)
-		m_value, _ := member_node.(neo4j.Node)
-		comment.CommentID = c_value.Props["commentId"].(string)
-		comment.Content = c_value.Props["content"].(string)
-		comment.MemberID = c_value.Props["memberID"].(string)
-		comment.Nickname = m_value.Props["nickname"].(string)
-		comment.PostID = c_value.Props["postID"].(string)
-		comment.CreatedAt = c_value.Props["createdAt"].(time.Time).Format(time.RFC3339)
-		comment.UpdatedAt = c_value.Props["updatedAt"].(time.Time).Format(time.RFC3339)
+		postID = p_value.(string)
 	}
 
-	fmt.Printf("Comment retrieved: %+v\n", comment)
-	c.IndentedJSON(http.StatusCreated, comment)
+	fmt.Printf("Created post: %+v\n", postID)
+	c.IndentedJSON(http.StatusCreated, postID)
 }

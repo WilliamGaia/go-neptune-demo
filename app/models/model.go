@@ -13,7 +13,7 @@ type ToggleLikeRequest struct {
 
 type AddPostRequest struct {
 	MemberID string `json:"memberID"`
-	PostID   string `json:"postID"`
+	Content  string `json:"content"`
 }
 
 type QueryCommentRequest struct {

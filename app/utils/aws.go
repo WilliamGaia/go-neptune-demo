@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -11,15 +12,11 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
-const (
-	ServiceName   = "neptune-db"
-	DummyUsername = "william"
-	region        = "ap-northeast-1"
-	// TODO Change to real cluster endpoint
-	hostAndPort = "pkm-osgp-index-test.cluster-cfhqexhrq16e.ap-northeast-1.neptune.amazonaws.com:8182"
-)
-
 func FetchAWSSignedToken(ctx context.Context) (neo4j.AuthToken, *time.Time, error) {
+	ServiceName := os.Getenv("SERVICENAME")
+	DummyUsername := os.Getenv("USERNAME")
+	region := os.Getenv("REGION")
+	hostAndPort := os.Getenv("HOSTPORT")
 	// Create a new request
 	req, err := http.NewRequest(http.MethodGet, "https://"+hostAndPort+"/opencypher", nil)
 	if err != nil {

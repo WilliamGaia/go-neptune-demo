@@ -65,12 +65,12 @@ func AddComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Cont
 	MERGE (c)-[:COMMENTED_BY]->(m)
 	MERGE (p)-[:COMMENTED_FROM]->(c)
 	MERGE (poster)-[:RECEIVED_FROM {posterID:p.posterID}]->(c)
-	RETURN c, m;`
+	RETURN c, m.nickname AS nickname;`
 
 	result, err := session.Run(ctx, query, params)
 	if err != nil {
 		fmt.Println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query comments "})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add comment "})
 		return
 	}
 	comment := models.Comment{}
@@ -78,21 +78,21 @@ func AddComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Cont
 		record := result.Record()
 		comment_node, found := record.Get("c")
 		if !found {
-			fmt.Println("Failed to get node from record")
+			fmt.Println("Failed to get comment node from record")
 			continue
 		}
-		member_node, found := record.Get("m")
+		m_value, found := record.Get("nickname")
 		if !found {
-			fmt.Println("Failed to get node from record")
+			fmt.Println("Failed to get nickname from record")
 			continue
 		}
 
 		c_value, _ := comment_node.(neo4j.Node)
-		m_value, _ := member_node.(neo4j.Node)
+		nickname := m_value.(string)
 		comment.CommentID = c_value.Props["commentId"].(string)
 		comment.Content = c_value.Props["content"].(string)
 		comment.MemberID = c_value.Props["memberID"].(string)
-		comment.Nickname = m_value.Props["nickname"].(string)
+		comment.Nickname = nickname
 		comment.PostID = c_value.Props["postID"].(string)
 		comment.CreatedAt = c_value.Props["createdAt"].(time.Time).Format(time.RFC3339)
 		comment.UpdatedAt = c_value.Props["updatedAt"].(time.Time).Format(time.RFC3339)
@@ -104,7 +104,6 @@ func AddComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Cont
 
 func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Context) {
 	request := bindAndSetDefaults(c)
-
 	pageSize := 10
 	nextPage := c.Query("next_page")
 	prevPage := c.Query("prev_page")
@@ -121,7 +120,6 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 	errorChan := make(chan error)
 
 	if sessionID == "" {
-		// New session, query from Neo4j and store in memory
 		go func() {
 			comments, err = fetchCommentsFromDB(driver, ctx, request, 0, 100)
 			if err != nil {
@@ -239,16 +237,6 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 	c.IndentedJSON(http.StatusOK, gin.H{"session_id": sessionID, "comments": response})
 }
 
-func ToggleLike(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Context) {
-	request := models.ToggleLikeRequest{}
-	if err := c.BindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-	fmt.Println("Request Body:  ", request.CommentID)
-	c.IndentedJSON(http.StatusCreated, "Toggled success.")
-}
-
 func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, request models.QueryCommentRequest, skip, limit int) ([]models.Comment, error) {
 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)
@@ -263,7 +251,8 @@ func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, re
 		}
 		query = `
 		MATCH (p:post {postID:$postID})-[:COMMENTED_FROM]->(c:comment)
-		RETURN c,p.posterAccount AS nickname
+		OPTIONAL MATCH (c)<-[:LIKED]-(likedMember:member)
+		RETURN c, p.posterAccount AS nickname, p.posterID AS queryerID, COLLECT(likedMember) AS likedMembers ,COUNT(likedMember) AS likeQty
 		ORDER BY c.createdAt DESC
 		SKIP $skip
 		LIMIT $limit`
@@ -275,7 +264,8 @@ func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, re
 		}
 		query = `
 		MATCH (m:member {memberID:$memberID})-[:POSTED]->(:post)-[:COMMENTED_FROM]->(c:comment)
-		RETURN c,m.nickname AS nickname
+		OPTIONAL MATCH (c)<-[:LIKED]-(likedMember:member)
+		RETURN c,m.nickname AS nickname, m.memberID AS queryerID, COLLECT(likedMember.memberID) AS likedMembers ,COUNT(likedMember) AS likeQty
 		ORDER BY c.createdAt DESC
 		SKIP $skip
 		LIMIT $limit`
@@ -292,12 +282,27 @@ func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, re
 		record := result.Record()
 		c_node, found := record.Get("c")
 		if !found {
-			fmt.Println("Failed to get node from record")
+			fmt.Println("Failed to get comment node from record")
 			continue
 		}
 		nickname_value, found := record.Get("nickname")
 		if !found {
-			fmt.Println("Failed to get node from record")
+			fmt.Println("Failed to get nickname from record")
+			continue
+		}
+		queryerID_value, found := record.Get("queryerID")
+		if !found {
+			fmt.Println("Failed to get queryerID from record")
+			continue
+		}
+		likedMember_value, found := record.Get("likedMembers")
+		if !found {
+			fmt.Println("Failed to get likedMember from record")
+			continue
+		}
+		likeQty_value, found := record.Get("likeQty")
+		if !found {
+			fmt.Println("Failed to get likeQty from record")
 			continue
 		}
 
@@ -307,18 +312,24 @@ func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, re
 		commentID := c_value.Props["commentId"].(string)
 		memberID := c_value.Props["memberID"].(string)
 		nickname := nickname_value.(string)
+		likeQty := int32(likeQty_value.(int64))
 		postID := c_value.Props["postID"].(string)
 		content := c_value.Props["content"].(string)
 		// TODO get from poster and member compare
-		memberLiked := false
+		queryerID := queryerID_value.(string)
+		likedMemberIDs, found := likedMember_value.([]string)
+		if !found {
+			likedMemberIDs = []string{}
+		}
+		fmt.Println("likedMember=", likedMemberIDs, "queryer or poster=", queryerID)
+		memberLiked := contains(likedMemberIDs, queryerID)
 		comment := models.Comment{
-			CommentID: commentID,
-			Content:   content,
-			MemberID:  memberID,
-			PostID:    postID,
-			Nickname:  nickname,
-			// TODO Get from cypher
-			LikeQty:     0,
+			CommentID:   commentID,
+			Content:     content,
+			MemberID:    memberID,
+			PostID:      postID,
+			Nickname:    nickname,
+			LikeQty:     likeQty,
 			MemberLiked: memberLiked,
 			CreatedAt:   createdAt,
 			UpdatedAt:   updatedAt,
@@ -378,4 +389,13 @@ func generateSessionID() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+func contains(list []string, str string) bool {
+	for _, v := range list {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
