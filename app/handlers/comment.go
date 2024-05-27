@@ -121,7 +121,9 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 
 	if sessionID == "" {
 		go func() {
-			comments, err = fetchCommentsFromDB(driver, ctx, request, 0, 100)
+			session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+			defer session.Close(ctx)
+			comments, err = fetchCommentsFromDB(session, ctx, request, 0, 100)
 			if err != nil {
 				errorChan <- err
 				return
@@ -129,7 +131,9 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 			commentsChan <- comments
 		}()
 		go func() {
-			total, err := countCommentsFromDB(driver, ctx, request)
+			session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+			defer session.Close(ctx)
+			total, err := countCommentsFromDB(session, ctx, request)
 			if err != nil {
 				errorChan <- err
 				return
@@ -176,8 +180,9 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 			skip, _ := strconv.Atoi(nextPage)
 			fmt.Println("Check if need Fetching pages")
 			if skip >= len(sessionData.Comments) {
-
-				comments, err = fetchCommentsFromDB(driver, ctx, request, sessionData.LastFetchedIndex, 100)
+				session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+				defer session.Close(ctx)
+				comments, err = fetchCommentsFromDB(session, ctx, request, sessionData.LastFetchedIndex, 100)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
@@ -237,10 +242,7 @@ func QueryComment(c *gin.Context, driver neo4j.DriverWithContext, ctx context.Co
 	c.IndentedJSON(http.StatusOK, gin.H{"session_id": sessionID, "comments": response})
 }
 
-func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, request models.QueryCommentRequest, skip, limit int) ([]models.Comment, error) {
-	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
-	defer session.Close(ctx)
-
+func fetchCommentsFromDB(session neo4j.SessionWithContext, ctx context.Context, request models.QueryCommentRequest, skip, limit int) ([]models.Comment, error) {
 	params := map[string]interface{}{}
 	query := ""
 	if request.MemberID == "" {
@@ -339,10 +341,7 @@ func fetchCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, re
 	return comments, nil
 }
 
-func countCommentsFromDB(driver neo4j.DriverWithContext, ctx context.Context, request models.QueryCommentRequest) (int, error) {
-	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
-	defer session.Close(ctx)
-
+func countCommentsFromDB(session neo4j.SessionWithContext, ctx context.Context, request models.QueryCommentRequest) (int, error) {
 	params := map[string]interface{}{}
 	query := ""
 	if request.MemberID == "" {

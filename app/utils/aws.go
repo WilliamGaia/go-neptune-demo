@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -48,9 +49,10 @@ func FetchAWSSignedToken(ctx context.Context) (neo4j.AuthToken, *time.Time, erro
 	authToken := neo4j.BasicAuth(DummyUsername, string(password), "")
 
 	// Set token expiration time to 60 minutes (Amazon credentials generally expire every hour)
-	expiresIn := time.Now().Add(60 * time.Minute)
+	expiresIn := time.Now().Add(15 * time.Minute)
 	// Add a buffer to refresh the token before it expires
 	expiresIn = expiresIn.Add(-5 * time.Minute)
+	fmt.Printf("Generated token expires at: %v\n", expiresIn)
 
 	return authToken, &expiresIn, nil
 }
